@@ -390,7 +390,7 @@ void WebServer::dealwithwrite(int sockfd)
     }
 }
 
-void WebServer::eventLoop() // TODO 多线程都会跑这段代码吗? 主线程？
+void WebServer::eventLoop() // done 多线程都会跑这段代码吗? 主线程？ 答：主线程跑
 {
     bool timeout = false;
     bool stop_server = false;
