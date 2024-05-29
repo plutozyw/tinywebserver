@@ -1,6 +1,6 @@
-//游双书中源代码
-#ifndef intIME_HEAP
-#define intIME_HEAP
+// 游双书中源代码
+#ifndef tIME_HEAP
+#define tIME_HEAP
 
 #include <iostream>
 #include <netinet/in.h>
@@ -10,98 +10,104 @@ using std::exception;
 #define BUFFER_SIZE 64
 
 class heap_timer;
+/*绑定socket和定时器*/
 struct client_data
 {
     sockaddr_in address;
     int sockfd;
-    char buf[ BUFFER_SIZE ];
-    heap_timer* timer;
+    char buf[BUFFER_SIZE];
+    heap_timer *timer;
 };
 
+/*定时器类(一个节点)*/
 class heap_timer
 {
 public:
-    heap_timer( int delay )
+    heap_timer(int delay)
     {
-        expire = time( NULL ) + delay;
+        expire = time(NULL) + delay;
     }
 
 public:
-   time_t expire;
-   void (*cb_func)( client_data* );
-   client_data* user_data;
+    time_t expire;                  // 定时器生效绝对时间
+    void (*cb_func)(client_data *); // 定时器回调函数
+    client_data *user_data;         // 用户数据
 };
 
+/*时间堆类*/
 class time_heap
 {
 public:
-    time_heap( int cap ) throw ( std::exception )
-        : capacity( cap ), cur_size( 0 )
+    // 初始化大小为cap的空堆
+    time_heap(int cap) throw(std::exception) : capacity(cap), cur_size(0)
     {
-	array = new heap_timer* [capacity];
-	if ( ! array )
-	{
+        array = new heap_timer *[capacity]; // 指针数组
+        if (!array)
+        {
             throw std::exception();
-	}
-        for( int i = 0; i < capacity; ++i )
+        }
+        for (int i = 0; i < capacity; ++i)
         {
             array[i] = NULL;
         }
     }
-    time_heap( heap_timer** init_array, int size, int capacity ) throw ( std::exception )
-        : cur_size( size ), capacity( capacity )
+    // 用已有数组初始化堆
+    time_heap(heap_timer **init_array, int size, int capacity) throw(std::exception) : cur_size(size), capacity(capacity)
     {
-        if ( capacity < size )
+        if (capacity < size)
         {
             throw std::exception();
         }
-        array = new heap_timer* [capacity];
-        if ( ! array )
+        array = new heap_timer *[capacity];
+        if (!array)
         {
             throw std::exception();
         }
-        for( int i = 0; i < capacity; ++i )
+        for (int i = 0; i < capacity; ++i)
         {
             array[i] = NULL;
         }
-        if ( size != 0 )
+        if (size != 0)
         {
-            for ( int i =  0; i < size; ++i )
+            for (int i = 0; i < size; ++i)
             {
-                array[ i ] = init_array[ i ];
+                array[i] = init_array[i];
             }
-            for ( int i = (cur_size-1)/2; i >=0; --i )
+            for (int i = (cur_size - 1) / 2; i >= 0; --i)
             {
-                percolate_down( i );
+                percolate_down(i); // 下滤
             }
         }
     }
     ~time_heap()
     {
-        for ( int i =  0; i < cur_size; ++i )
+        for (int i = 0; i < cur_size; ++i)
         {
             delete array[i];
         }
-        delete [] array; 
+        delete[] array;
     }
 
 public:
-    void add_timer( heap_timer* timer ) throw ( std::exception )
+    // 添加定时器
+    void add_timer(heap_timer *timer) throw(std::exception)
     {
-        if( !timer )
+        if (!timer)
         {
             return;
         }
-        if( cur_size >= capacity )
+        if (cur_size >= capacity) // 容量不够，扩大一倍
         {
             resize();
         }
+        // hole是新建空穴位置；
         int hole = cur_size++;
         int parent = 0;
-        for( ; hole > 0; hole=parent )
+        // 从空穴到根节点的路径上所有节点执行上滤
+        for (; hole > 0; hole = parent)
         {
-            parent = (hole-1)/2;
-            if ( array[parent]->expire <= timer->expire )
+            parent = (hole - 1) / 2;
+            if (array[parent]->expire <= timer->expire)
             {
                 break;
             }
@@ -109,54 +115,62 @@ public:
         }
         array[hole] = timer;
     }
-    void del_timer( heap_timer* timer )
+    // 删除定时器
+    void del_timer(heap_timer *timer)
     {
-        if( !timer )
+        if (!timer)
         {
             return;
         }
         // lazy delelte
+        // 仅仅将目标定时器的回调函数设置为空，节省真正删除定时器造成的开销，但是容易使堆数组膨胀
         timer->cb_func = NULL;
     }
-    heap_timer* top() const
+    // 获取堆顶部的定时器
+    heap_timer *top() const
     {
-        if ( empty() )
+        if (empty())
         {
             return NULL;
         }
         return array[0];
     }
+    // 删除堆顶部的定时器
     void pop_timer()
     {
-        if( empty() )
+        if (empty())
         {
             return;
         }
-        if( array[0] )
+        if (array[0])
         {
             delete array[0];
+            // 将原来的堆顶元素替换为数组最后一个元素
             array[0] = array[--cur_size];
-            percolate_down( 0 );
+            percolate_down(0); // 对新的堆顶元素执行下滤操作
         }
     }
     void tick()
     {
-        heap_timer* tmp = array[0];
-        time_t cur = time( NULL );
-        while( !empty() )
+        heap_timer *tmp = array[0];
+        time_t cur = time(NULL);
+        while (!empty())
         {
-            if( !tmp )
+            if (!tmp)
             {
                 break;
             }
-            if( tmp->expire > cur )
+            // 如果堆顶定时器没有到期，退出循环
+            if (tmp->expire > cur)
             {
                 break;
             }
-            if( array[0]->cb_func )
+            // 否则就执行堆顶定时器中的任务
+            if (array[0]->cb_func)
             {
-                array[0]->cb_func( array[0]->user_data );
+                array[0]->cb_func(array[0]->user_data);
             }
+            // 将堆顶元素删除，同时生成新的堆顶定时器
             pop_timer();
             tmp = array[0];
         }
@@ -164,18 +178,19 @@ public:
     bool empty() const { return cur_size == 0; }
 
 private:
-    void percolate_down( int hole )
+    // 下滤，确保以第hole个节点为根的子树拥有最小堆性质
+    void percolate_down(int hole)
     {
-        heap_timer* temp = array[hole];
+        heap_timer *temp = array[hole];
         int child = 0;
-        for ( ; ((hole*2+1) <= (cur_size-1)); hole=child )
+        for (; ((hole * 2 + 1) <= (cur_size - 1)); hole = child)
         {
-            child = hole*2+1;
-            if ( (child < (cur_size-1)) && (array[child+1]->expire < array[child]->expire ) )
+            child = hole * 2 + 1;
+            if ((child < (cur_size - 1)) && (array[child + 1]->expire < array[child]->expire))
             {
                 ++child;
             }
-            if ( array[child]->expire < temp->expire )
+            if (array[child]->expire < temp->expire)
             {
                 array[hole] = array[child];
             }
@@ -186,30 +201,31 @@ private:
         }
         array[hole] = temp;
     }
-    void resize() throw ( std::exception )
+    // 堆数组容量扩大一倍
+    void resize() throw(std::exception)
     {
-        heap_timer** temp = new heap_timer* [2*capacity];
-        for( int i = 0; i < 2*capacity; ++i )
+        heap_timer **temp = new heap_timer *[2 * capacity];
+        for (int i = 0; i < 2 * capacity; ++i)
         {
             temp[i] = NULL;
         }
-        if ( ! temp )
+        if (!temp)
         {
             throw std::exception();
         }
-        capacity = 2*capacity;
-        for ( int i = 0; i < cur_size; ++i )
+        capacity = 2 * capacity;
+        for (int i = 0; i < cur_size; ++i)
         {
             temp[i] = array[i];
         }
-        delete [] array;
+        delete[] array;
         array = temp;
     }
 
 private:
-    heap_timer** array;
-    int capacity;
-    int cur_size;
+    heap_timer **array; // 堆数组
+    int capacity;       // 容量
+    int cur_size;       // 当前元素个数
 };
 
 #endif
