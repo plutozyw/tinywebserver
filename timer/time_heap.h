@@ -8,6 +8,7 @@
 using std::exception;
 
 #define BUFFER_SIZE 64
+#define HEAP_SIZE 100   //空堆初始大小
 
 class heap_timer;
 /*绑定socket和定时器*/
@@ -31,15 +32,15 @@ public:
     client_data *user_data;         // 用户数据
 };
 
-/*时间堆类*/
+/*时间堆类(最小堆、二叉堆、小根堆)*/
 class time_heap
 {
 public:
     // 初始化大小为cap的空堆
-    time_heap(int cap);
+    time_heap(int cap) throw(std::exception);
 
     // 用已有数组初始化堆
-    time_heap(heap_timer **init_array, int size, int capacity);
+    time_heap(heap_timer **init_array, int size, int capacity) throw(std::exception);
 
     ~time_heap();
 
@@ -47,7 +48,7 @@ public:
     //todo 没有adjust_timer?
     void adjust_timer(heap_timer *timer);
     // 添加定时器
-    void add_timer(heap_timer *timer);
+    void add_timer(heap_timer *timer) throw(std::exception);
 
     // 删除定时器
     void del_timer(heap_timer *timer);
@@ -78,7 +79,7 @@ private:
 class Utils
 {
 public:
-    Utils() {}
+    Utils():m_time_heap(HEAP_SIZE) {}
     ~Utils() {}
 
     void init(int timeslot);
@@ -102,10 +103,11 @@ public:
 
 public:
     static int *u_pipefd;
-    sort_timer_lst m_timer_lst;
+    time_heap m_time_heap;
     static int u_epollfd;
     int m_TIMESLOT;
 };
 
+void cb_func(client_data *user_data);
 
 #endif
