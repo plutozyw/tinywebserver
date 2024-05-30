@@ -230,7 +230,7 @@ bool WebServer::dealclientdata()
             LOG_ERROR("%s", "Internal server busy");
             return false;
         }
-        printf("new client=%d\n",connfd);
+        // printf("new client=%d\n",connfd);
         timer(connfd, client_address);
     }
     // ET非阻塞边缘触发
@@ -250,7 +250,7 @@ bool WebServer::dealclientdata()
                 LOG_ERROR("%s", "Internal server busy");
                 break;
             }
-            printf("new client=%d\n",connfd);
+            // printf("new client=%d\n",connfd);
             timer(connfd, client_address);
         }
         return false;

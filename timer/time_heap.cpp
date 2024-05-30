@@ -78,30 +78,6 @@ void time_heap::del_timer(heap_timer *timer)
     del(i);
 }
 
-// // 删除堆顶部的定时器
-// void time_heap::pop_timer()
-// {
-//     assert(!array.empty());
-//     // if ( array.empty())
-//     // {
-//     //     printf("array.empty error\n");
-//     //     return;
-//     // }
-//     int n = array.size() - 1;
-//     swapNode(0, n);
-
-//     printf("delete ref[%d]=%d\n",array.back().user_data->sockfd,ref[array.back().user_data->sockfd]);
-
-//     ref.erase(array.back().user_data->sockfd);
-//     array.pop_back();
-    
-//     // 如果堆空就不用调整了
-//     if (!array.empty())
-//     {
-//         percolate_down(0);
-//     }
-// }
-
 void time_heap::tick()
 {
     if (array.empty())

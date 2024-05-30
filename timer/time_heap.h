@@ -52,10 +52,7 @@ public:
 
     // 删除定时器
     void del_timer(heap_timer *timer);
-    
-    // 删除堆顶部的定时器
-    // void pop_timer();
-    
+      
     void tick();
 
 private:
