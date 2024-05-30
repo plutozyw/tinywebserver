@@ -10,46 +10,6 @@ heap_timer::heap_timer()
 {
 }
 
-// // 初始化大小为cap的空堆
-// time_heap::time_heap(int cap) : capacity(cap), cur_size(0)
-// {
-//     array = new heap_timer *[capacity]; // 指针数组
-//     if (!array)
-//     {
-//     }
-//     for (int i = 0; i < capacity; ++i)
-//     {
-//         array[i] = NULL;
-//     }
-// }
-
-// // 用已有数组初始化堆
-// time_heap::time_heap(heap_timer **init_array, int size, int capacity) : cur_size(size), capacity(capacity)
-// {
-//     if (capacity < size)
-//     {
-//     }
-//     array = new heap_timer *[capacity];
-//     if (!array)
-//     {
-//     }
-//     for (int i = 0; i < capacity; ++i)
-//     {
-//         array[i] = NULL;
-//     }
-//     if (size != 0)
-//     {
-//         for (int i = 0; i < size; ++i)
-//         {
-//             array[i] = init_array[i];
-//         }
-//         for (int i = (cur_size - 1) / 2; i >= 0; --i)
-//         {
-//             percolate_down(i); // 下滤
-//         }
-//     }
-// }
-
 time_heap::time_heap()
 {
     array.reserve(64);
@@ -79,11 +39,20 @@ void time_heap::add_timer(heap_timer *timer)
     {
         return;
     }
-
-    int i = array.size();
-    ref[id] = i;
-    array.push_back(*timer);
-    percolate_up(i);
+    if (!ref.count(id))
+    {
+        int i = array.size();
+        ref[id] = i;
+        array.push_back(*timer);
+        percolate_up(i);
+    }
+    else
+    {
+        int i = ref[id];
+        array[i] = *timer;
+        percolate_down(i);
+        percolate_up(i);
+    }
 }
 
 // 删除定时器
@@ -96,16 +65,6 @@ void time_heap::del_timer(heap_timer *timer)
 
     pop_timer();
 }
-
-// // 获取堆顶部的定时器
-// heap_timer *time_heap::top() const
-// {
-//     if (empty())
-//     {
-//         return NULL;
-//     }
-//     return array[0];
-// }
 
 // 删除堆顶部的定时器
 void time_heap::pop_timer()
@@ -139,19 +98,12 @@ void time_heap::tick()
             break;
         }
         // 否则就执行堆顶定时器中的任务
-        if (array[0].cb_func)
-        {
-            array[0].cb_func(array[0].user_data);
-        }
+        tmp.cb_func(tmp.user_data);
+
         // 将堆顶元素删除，同时生成新的堆顶定时器
         pop_timer();
     }
 }
-
-// bool time_heap::empty() const
-// {
-//     return cur_size == 0;
-// }
 
 // 下滤，确保以第i个节点为根的子树拥有最小堆性质
 void time_heap::percolate_down(int i)
@@ -171,28 +123,10 @@ void time_heap::percolate_down(int i)
     }
 }
 
-// // 堆数组容量扩大一倍
-// void time_heap::resize()
-// {
-//     heap_timer **temp = new heap_timer *[2 * capacity];
-//     for (int i = 0; i < 2 * capacity; ++i)
-//     {
-//         temp[i] = NULL;
-//     }
-//     if (!temp)
-//     {
-//     }
-//     capacity = 2 * capacity;
-//     for (int i = 0; i < cur_size; ++i)
-//     {
-//         temp[i] = array[i];
-//     }
-//     delete[] array;
-//     array = temp;
-// }
-
 void time_heap::swapNode(int i, int j)
 {
+    if (i == j)
+        return;
     int s = array.size();
     assert(i >= 0 && i < s);
     assert(j >= 0 && j < s);
@@ -304,7 +238,7 @@ void cb_func(client_data *user_data)
     // 关闭文件描述符
     close(user_data->sockfd);
 
-    // printf("timeout close %d\n", user_data->sockfd);
+    printf("timeout close %d\n", user_data->sockfd);
 
     // printf("http connect count %d\n", http_conn::m_user_count);
 

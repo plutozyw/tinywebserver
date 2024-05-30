@@ -39,12 +39,6 @@ public:
 class time_heap
 {
 public:
-    // 初始化大小为cap的空堆
-    // time_heap(int cap);
-
-    // 用已有数组初始化堆
-    // time_heap(heap_timer **init_array, int size, int capacity);
-
     time_heap();
 
     ~time_heap();
@@ -59,22 +53,14 @@ public:
     // 删除定时器
     void del_timer(heap_timer *timer);
     
-    // 获取堆顶部的定时器
-    // heap_timer *top() const;
-    
     // 删除堆顶部的定时器
     void pop_timer();
     
     void tick();
-    
-    // bool empty() const;
 
 private:
     // 下滤，确保以第i个节点为根的子树拥有最小堆性质
     void percolate_down(int i);
-
-    // 堆数组容量扩大一倍
-    // void resize();
 
     //交换节点
     void swapNode(int i, int j);
@@ -83,11 +69,9 @@ private:
     void percolate_up(int i);
     
 private:
-    // heap_timer **array; // 堆数组
     //数组模拟堆
     std::vector<heap_timer> array;
-    // int capacity;       // 容量
-    // int cur_size;       // 当前元素个数
+    
     //存sockid和堆索引对应关系
     std::unordered_map<int, int> ref;
 };
