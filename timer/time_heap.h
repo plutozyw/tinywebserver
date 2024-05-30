@@ -6,10 +6,10 @@
 #include <netinet/in.h>
 #include <time.h>
 #include <unordered_map>
+#include <vector>
 using std::exception;
 
 #define BUFFER_SIZE 64
-#define HEAP_SIZE 100   //空堆初始大小
 
 class heap_timer;
 /*绑定socket和定时器*/
@@ -40,10 +40,12 @@ class time_heap
 {
 public:
     // 初始化大小为cap的空堆
-    time_heap(int cap) throw(std::exception);
+    // time_heap(int cap);
 
     // 用已有数组初始化堆
-    time_heap(heap_timer **init_array, int size, int capacity) throw(std::exception);
+    // time_heap(heap_timer **init_array, int size, int capacity);
+
+    time_heap();
 
     ~time_heap();
 
@@ -52,46 +54,48 @@ public:
     void adjust_timer(heap_timer *timer);
 
     // 添加定时器
-    void add_timer(heap_timer *timer) throw(std::exception);
+    void add_timer(heap_timer *timer);
 
     // 删除定时器
     void del_timer(heap_timer *timer);
     
     // 获取堆顶部的定时器
-    heap_timer *top() const;
+    // heap_timer *top() const;
     
     // 删除堆顶部的定时器
     void pop_timer();
     
     void tick();
     
-    bool empty() const;
+    // bool empty() const;
 
 private:
     // 下滤，确保以第i个节点为根的子树拥有最小堆性质
-    void percolate_down(size_t i);
+    void percolate_down(int i);
 
     // 堆数组容量扩大一倍
-    void resize() throw(std::exception);
+    // void resize();
 
     //交换节点
-    void swapNode(size_t i, size_t j);
+    void swapNode(int i, int j);
 
     // 上滤，确保以第i个节点为根的子树拥有最小堆性质
-    void percolate_up(size_t i);
+    void percolate_up(int i);
     
 private:
-    heap_timer **array; // 堆数组
-    int capacity;       // 容量
-    int cur_size;       // 当前元素个数
+    // heap_timer **array; // 堆数组
+    //数组模拟堆
+    std::vector<heap_timer> array;
+    // int capacity;       // 容量
+    // int cur_size;       // 当前元素个数
     //存sockid和堆索引对应关系
-    std::unordered_map<int, size_t> ref;
+    std::unordered_map<int, int> ref;
 };
 
 class Utils
 {
 public:
-    Utils():m_time_heap(HEAP_SIZE) {}
+    Utils() {}
     ~Utils() {}
 
     void init(int timeslot);

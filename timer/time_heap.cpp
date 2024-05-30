@@ -10,82 +10,79 @@ heap_timer::heap_timer()
 {
 }
 
-// 初始化大小为cap的空堆
-time_heap::time_heap(int cap) throw(std::exception) : capacity(cap), cur_size(0)
-{
-    array = new heap_timer *[capacity]; // 指针数组
-    if (!array)
-    {
-        throw std::exception();
-    }
-    for (int i = 0; i < capacity; ++i)
-    {
-        array[i] = NULL;
-    }
-}
+// // 初始化大小为cap的空堆
+// time_heap::time_heap(int cap) : capacity(cap), cur_size(0)
+// {
+//     array = new heap_timer *[capacity]; // 指针数组
+//     if (!array)
+//     {
+//     }
+//     for (int i = 0; i < capacity; ++i)
+//     {
+//         array[i] = NULL;
+//     }
+// }
 
-// 用已有数组初始化堆
-time_heap::time_heap(heap_timer **init_array, int size, int capacity) throw(std::exception) : cur_size(size), capacity(capacity)
+// // 用已有数组初始化堆
+// time_heap::time_heap(heap_timer **init_array, int size, int capacity) : cur_size(size), capacity(capacity)
+// {
+//     if (capacity < size)
+//     {
+//     }
+//     array = new heap_timer *[capacity];
+//     if (!array)
+//     {
+//     }
+//     for (int i = 0; i < capacity; ++i)
+//     {
+//         array[i] = NULL;
+//     }
+//     if (size != 0)
+//     {
+//         for (int i = 0; i < size; ++i)
+//         {
+//             array[i] = init_array[i];
+//         }
+//         for (int i = (cur_size - 1) / 2; i >= 0; --i)
+//         {
+//             percolate_down(i); // 下滤
+//         }
+//     }
+// }
+
+time_heap::time_heap()
 {
-    if (capacity < size)
-    {
-        throw std::exception();
-    }
-    array = new heap_timer *[capacity];
-    if (!array)
-    {
-        throw std::exception();
-    }
-    for (int i = 0; i < capacity; ++i)
-    {
-        array[i] = NULL;
-    }
-    if (size != 0)
-    {
-        for (int i = 0; i < size; ++i)
-        {
-            array[i] = init_array[i];
-        }
-        for (int i = (cur_size - 1) / 2; i >= 0; --i)
-        {
-            percolate_down(i); // 下滤
-        }
-    }
+    array.reserve(64);
 }
 
 time_heap::~time_heap()
 {
     ref.clear();
-
-    for (int i = 0; i < cur_size; ++i)
-    {
-        delete array[i]; // 释放了由array[i]指向的对象所占用的内存
-    }
-    delete[] array; // 释放了由array指向的整个数组所占用的内存
+    array.clear();
 }
 
 // 调整定时器
 void time_heap::adjust_timer(heap_timer *timer)
 {
+    int id = timer->user_data->sockfd;
+    assert(!array.empty() && ref.count(id));
     // 下滤
-    percolate_down(ref[timer->user_data->sockfd]);
+    percolate_down(ref[id]);
 }
 
 // 添加定时器
-void time_heap::add_timer(heap_timer *timer) throw(std::exception)
+void time_heap::add_timer(heap_timer *timer)
 {
+    int id = timer->user_data->sockfd;
+    assert(id >= 0);
     if (!timer)
     {
         return;
     }
-    if (cur_size >= capacity) // 容量不够，扩大一倍
-    {
-        resize();
-    }
-    size_t i;
-    i = cur_size++;
-    array[i]=timer;
-    ref[timer->user_data->sockfd] = i;
+
+    int i = array.size();
+    ref[id] = i;
+    array.push_back(*timer);
     percolate_up(i);
 }
 
@@ -96,122 +93,121 @@ void time_heap::del_timer(heap_timer *timer)
     {
         return;
     }
-    // lazy delelte
-    // 仅仅将目标定时器的回调函数设置为空，节省真正删除定时器造成的开销，但是容易使堆数组膨胀
-    timer->cb_func = NULL; // todo lazy delete有什么影响?
+
+    pop_timer();
 }
 
-// 获取堆顶部的定时器
-heap_timer *time_heap::top() const
-{
-    if (empty())
-    {
-        return NULL;
-    }
-    return array[0];
-}
+// // 获取堆顶部的定时器
+// heap_timer *time_heap::top() const
+// {
+//     if (empty())
+//     {
+//         return NULL;
+//     }
+//     return array[0];
+// }
 
 // 删除堆顶部的定时器
 void time_heap::pop_timer()
 {
-    if (empty())
+    assert(!array.empty());
+    size_t n = array.size() - 1;
+    swapNode(0, n);
+
+    ref.erase(array.back().user_data->sockfd);
+    array.pop_back();
+    // 如果堆空就不用调整了
+    if (!array.empty())
     {
-        return;
-    }
-    if (array[0])
-    {
-        delete array[0];
-        // 将原来的堆顶元素替换为数组最后一个元素
-        array[0] = array[--cur_size];
-        percolate_down(0); // 对新的堆顶元素执行下滤操作
+        percolate_down(0);
     }
 }
 
 void time_heap::tick()
 {
-    heap_timer *tmp = array[0];
+    if (array.empty())
+        return;
+
     time_t cur = time(NULL);
-    while (!empty())
+    while (!array.empty())
     {
-        if (!tmp)
-        {
-            break;
-        }
+        heap_timer tmp = array.front();
+
         // 如果堆顶定时器没有到期，退出循环
-        if (tmp->expire > cur)
+        if (tmp.expire > cur)
         {
             break;
         }
         // 否则就执行堆顶定时器中的任务
-        if (array[0]->cb_func)
+        if (array[0].cb_func)
         {
-            array[0]->cb_func(array[0]->user_data);
+            array[0].cb_func(array[0].user_data);
         }
         // 将堆顶元素删除，同时生成新的堆顶定时器
         pop_timer();
-        tmp = array[0];
     }
 }
 
-bool time_heap::empty() const
-{
-    return cur_size == 0;
-}
+// bool time_heap::empty() const
+// {
+//     return cur_size == 0;
+// }
 
 // 下滤，确保以第i个节点为根的子树拥有最小堆性质
-void time_heap::percolate_down(size_t i)
+void time_heap::percolate_down(int i)
 {
-    size_t s = cur_size;
+    int s = array.size();
     assert(i >= 0 && i < s);
-    size_t t = i * 2 + 1;
+    int t = i * 2 + 1;
 
     while (t < s)
     {
-        if (t + 1 < s && array[t + 1]->expire < array[t]->expire) t++;
-        if (array[i]->expire < array[t]->expire) break;
+        if (t + 1 < s && array[t + 1].expire < array[t].expire)
+            t++;
+        if (array[i].expire < array[t].expire)
+            break;
         swap(array[i], array[t]);
         i = t, t = i * 2 + 1;
     }
 }
 
-// 堆数组容量扩大一倍
-void time_heap::resize() throw(std::exception)
-{
-    heap_timer **temp = new heap_timer *[2 * capacity];
-    for (int i = 0; i < 2 * capacity; ++i)
-    {
-        temp[i] = NULL;
-    }
-    if (!temp)
-    {
-        throw std::exception();
-    }
-    capacity = 2 * capacity;
-    for (int i = 0; i < cur_size; ++i)
-    {
-        temp[i] = array[i];
-    }
-    delete[] array;
-    array = temp;
-}
+// // 堆数组容量扩大一倍
+// void time_heap::resize()
+// {
+//     heap_timer **temp = new heap_timer *[2 * capacity];
+//     for (int i = 0; i < 2 * capacity; ++i)
+//     {
+//         temp[i] = NULL;
+//     }
+//     if (!temp)
+//     {
+//     }
+//     capacity = 2 * capacity;
+//     for (int i = 0; i < cur_size; ++i)
+//     {
+//         temp[i] = array[i];
+//     }
+//     delete[] array;
+//     array = temp;
+// }
 
-void time_heap::swapNode(size_t i, size_t j)
+void time_heap::swapNode(int i, int j)
 {
-    size_t s = cur_size;
+    int s = array.size();
     assert(i >= 0 && i < s);
     assert(j >= 0 && j < s);
     std::swap(array[i], array[j]);
-    ref[array[i]->user_data->sockfd] = i;
-    ref[array[j]->user_data->sockfd] = j;
+    ref[array[i].user_data->sockfd] = i;
+    ref[array[j].user_data->sockfd] = j;
 }
 
 // 上滤，确保以第i个节点为根的子树拥有最小堆性质
-void time_heap::percolate_up(size_t i)
+void time_heap::percolate_up(int i)
 {
-    assert(i >= 0 && i < cur_size);
+    assert(i >= 0 && i < array.size());
 
-    size_t j = (i - 1) / 2;
-    while(j >= 0 && array[i]->expire < array[j]->expire) 
+    int j = (i - 1) / 2;
+    while (j >= 0 && array[i].expire < array[j].expire)
     {
         swapNode(i, j);
         i = j;
