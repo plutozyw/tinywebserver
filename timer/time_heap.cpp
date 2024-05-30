@@ -55,6 +55,8 @@ time_heap::time_heap(heap_timer **init_array, int size, int capacity) throw(std:
 
 time_heap::~time_heap()
 {
+    ref.clear();
+
     for (int i = 0; i < cur_size; ++i)
     {
         delete array[i]; // 释放了由array[i]指向的对象所占用的内存
@@ -62,14 +64,11 @@ time_heap::~time_heap()
     delete[] array; // 释放了由array指向的整个数组所占用的内存
 }
 
-//调整定时器
+// 调整定时器
 void time_heap::adjust_timer(heap_timer *timer)
 {
-    //umap存sockid和堆索引对应关系
-
-    //下滤
-    //percolate_down();
-
+    // 下滤
+    percolate_down(ref[timer->user_data->sockfd]);
 }
 
 // 添加定时器
@@ -83,20 +82,11 @@ void time_heap::add_timer(heap_timer *timer) throw(std::exception)
     {
         resize();
     }
-    // hole是新建空穴位置；
-    int hole = cur_size++; // 在最后的位置创建空穴，把增加的节点放在空穴处
-    int parent = 0;
-    // 从空穴到根节点的路径上所有节点执行上滤
-    for (; hole > 0; hole = parent)
-    {
-        parent = (hole - 1) / 2;                    // 父节点位置
-        if (array[parent]->expire <= timer->expire) // 父节点比新增节点小
-        {
-            break; // 新增节点可以放在此空穴处，上滤完成
-        }
-        array[hole] = array[parent]; // 否则，交换空穴它父节点
-    }
-    array[hole] = timer;
+    size_t i;
+    i = cur_size++;
+    array[i]=timer;
+    ref[timer->user_data->sockfd] = i;
+    percolate_up(i);
 }
 
 // 删除定时器
@@ -168,28 +158,20 @@ bool time_heap::empty() const
     return cur_size == 0;
 }
 
-// 下滤，确保以第hole个节点为根的子树拥有最小堆性质
-void time_heap::percolate_down(int hole)
+// 下滤，确保以第i个节点为根的子树拥有最小堆性质
+void time_heap::percolate_down(size_t i)
 {
-    heap_timer *temp = array[hole];
-    int child = 0;
-    for (; ((hole * 2 + 1) <= (cur_size - 1)); hole = child)
+    size_t s = cur_size;
+    assert(i >= 0 && i < s);
+    size_t t = i * 2 + 1;
+
+    while (t < s)
     {
-        child = hole * 2 + 1; // 左子节点
-        if ((child < (cur_size - 1)) && (array[child + 1]->expire < array[child]->expire))
-        {
-            ++child; // 如果右子节点存在（即 child < (cur_size - 1)）并且右子节点值小于左子节点值，则 child 指向右子节点。
-        }
-        if (array[child]->expire < temp->expire) // 如果子节点更小，交换子节点和空穴
-        {
-            array[hole] = array[child];
-        }
-        else
-        {
-            break;
-        }
+        if (t + 1 < s && array[t + 1]->expire < array[t]->expire) t++;
+        if (array[i]->expire < array[t]->expire) break;
+        swap(array[i], array[t]);
+        i = t, t = i * 2 + 1;
     }
-    array[hole] = temp;
 }
 
 // 堆数组容量扩大一倍
@@ -211,6 +193,30 @@ void time_heap::resize() throw(std::exception)
     }
     delete[] array;
     array = temp;
+}
+
+void time_heap::swapNode(size_t i, size_t j)
+{
+    size_t s = cur_size;
+    assert(i >= 0 && i < s);
+    assert(j >= 0 && j < s);
+    std::swap(array[i], array[j]);
+    ref[array[i]->user_data->sockfd] = i;
+    ref[array[j]->user_data->sockfd] = j;
+}
+
+// 上滤，确保以第i个节点为根的子树拥有最小堆性质
+void time_heap::percolate_up(size_t i)
+{
+    assert(i >= 0 && i < cur_size);
+
+    size_t j = (i - 1) / 2;
+    while(j >= 0 && array[i]->expire < array[j]->expire) 
+    {
+        swapNode(i, j);
+        i = j;
+        j = (i - 1) / 2;
+    }
 }
 
 void Utils::init(int timeslot)
@@ -278,9 +284,9 @@ void Utils::addsig(int sig, void(handler)(int), bool restart) // done 为什么�
 // 定时处理任务，重新定时以不断触发SIGALRM信号
 void Utils::timer_handler()
 {
-    m_time_heap.tick(); // 处理链表上到期的定时器   
+    m_time_heap.tick(); // 处理链表上到期的定时器
     // m_timer_lst.tick(); // 处理链表上到期的定时器
-    alarm(m_TIMESLOT);  // 重新定时以不断触发 SIGALRM 信号
+    alarm(m_TIMESLOT); // 重新定时以不断触发 SIGALRM 信号
 }
 
 void Utils::show_error(int connfd, const char *info)

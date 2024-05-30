@@ -5,6 +5,7 @@
 #include <iostream>
 #include <netinet/in.h>
 #include <time.h>
+#include <unordered_map>
 using std::exception;
 
 #define BUFFER_SIZE 64
@@ -49,7 +50,7 @@ public:
 public:
     //todo 没有adjust_timer?
     void adjust_timer(heap_timer *timer);
-    
+
     // 添加定时器
     void add_timer(heap_timer *timer) throw(std::exception);
 
@@ -67,16 +68,24 @@ public:
     bool empty() const;
 
 private:
-    // 下滤，确保以第hole个节点为根的子树拥有最小堆性质
-    void percolate_down(int hole);
+    // 下滤，确保以第i个节点为根的子树拥有最小堆性质
+    void percolate_down(size_t i);
 
     // 堆数组容量扩大一倍
     void resize() throw(std::exception);
+
+    //交换节点
+    void swapNode(size_t i, size_t j);
+
+    // 上滤，确保以第i个节点为根的子树拥有最小堆性质
+    void percolate_up(size_t i);
     
 private:
     heap_timer **array; // 堆数组
     int capacity;       // 容量
     int cur_size;       // 当前元素个数
+    //存sockid和堆索引对应关系
+    std::unordered_map<int, size_t> ref;
 };
 
 class Utils
