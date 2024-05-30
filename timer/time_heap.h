@@ -54,11 +54,13 @@ public:
     void del_timer(heap_timer *timer);
     
     // 删除堆顶部的定时器
-    void pop_timer();
+    // void pop_timer();
     
     void tick();
 
 private:
+    //删除指定位置的定时器
+    void del(int i); 
     // 下滤，确保以第i个节点为根的子树拥有最小堆性质
     void percolate_down(int i);
 
@@ -71,7 +73,7 @@ private:
 private:
     //数组模拟堆
     std::vector<heap_timer> array;
-    
+
     //存sockid和堆索引对应关系
     std::unordered_map<int, int> ref;
 };
