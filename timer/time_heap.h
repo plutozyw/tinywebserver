@@ -25,10 +25,9 @@ struct client_data
 class heap_timer
 {
 public:
-    heap_timer(int delay);
 
     heap_timer();
-    
+
 public:
     time_t expire;                  // 定时器生效绝对时间
     void (*cb_func)(client_data *); // 定时器回调函数
@@ -44,7 +43,7 @@ public:
     ~time_heap();
 
 public:
-    //todo 没有adjust_timer?
+    // todo 没有adjust_timer?
     void adjust_timer(heap_timer *timer);
 
     // 添加定时器
@@ -52,26 +51,29 @@ public:
 
     // 删除定时器
     void del_timer(heap_timer *timer);
-      
+
     void tick();
 
+    // 返回栈顶元素还有多久超时
+    int getOverTime();
+
 private:
-    //删除指定位置的定时器
-    void del(int i); 
+    // 删除指定位置的定时器
+    void del(int i);
     // 下滤，确保以第i个节点为根的子树拥有最小堆性质
     void percolate_down(int i);
 
-    //交换节点
+    // 交换节点
     void swapNode(int i, int j);
 
     // 上滤，确保以第i个节点为根的子树拥有最小堆性质
     void percolate_up(int i);
-    
+
 private:
-    //数组模拟堆
+    // 数组模拟堆
     std::vector<heap_timer> array;
 
-    //存sockid和堆索引对应关系
+    // 存sockid和堆索引对应关系
     std::unordered_map<int, int> ref;
 };
 

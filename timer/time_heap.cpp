@@ -1,11 +1,6 @@
 #include "time_heap.h"
 #include "../http/http_conn.h"
 
-heap_timer::heap_timer(int delay)
-{
-    expire = time(NULL) + delay;
-}
-
 heap_timer::heap_timer()
 {
 }
@@ -26,12 +21,7 @@ void time_heap::adjust_timer(heap_timer *timer)
 {
     int id = timer->user_data->sockfd;
     assert(!array.empty() && ref.count(id));
-    // if ( !ref.count(id))
-    // {
-    //     printf("ref.count(%d) error\n",id);
-    //     return;
-    // }
-    
+
     // 下滤
     percolate_down(ref[id]);
     percolate_up(ref[id]);
@@ -50,7 +40,6 @@ void time_heap::add_timer(heap_timer *timer)
     {
         int i = array.size();
         ref[id] = i;
-        // printf("add ref[%d]=%d\n",id,i);
         array.push_back(*timer);
         percolate_up(i);
     }
@@ -58,7 +47,6 @@ void time_heap::add_timer(heap_timer *timer)
     {
         int i = ref[id];
         array[i] = *timer;
-        // printf("add ref[%d]=%d again \n",id,i);
         percolate_down(i);
         percolate_up(i);
     }
@@ -71,9 +59,9 @@ void time_heap::del_timer(heap_timer *timer)
     {
         return;
     }
-    int id=timer->user_data->sockfd;
+    int id = timer->user_data->sockfd;
 
-    int i=ref[id];
+    int i = ref[id];
 
     del(i);
 }
@@ -101,25 +89,37 @@ void time_heap::tick()
     }
 }
 
+int time_heap::getOverTime()
+{
+    time_t cur = time(NULL);
+    int ret = -1;
+    if (!array.empty())
+    {
+        ret = array[0].expire - cur;
+        if (ret < 0)
+        {
+            ret = 0;
+        }
+    }
+    return ret;
+}
+
 void time_heap::del(int i)
 {
     assert(!array.empty() && i >= 0 && i < array.size());
 
     int n = array.size() - 1;
-    if(i==n)//要删除最后一个元素，直接删
+    if (i == n) // 要删除最后一个元素，直接删
     {
-        // printf("delete ref[%d]=%d n=%d\n",array.back().user_data->sockfd,ref[array.back().user_data->sockfd],n);
         ref.erase(array.back().user_data->sockfd);
         array.pop_back();
         return;
     }
     swapNode(i, n);
 
-    // printf("delete ref[%d]=%d n=%d\n",array.back().user_data->sockfd,ref[array.back().user_data->sockfd],n);
-
     ref.erase(array.back().user_data->sockfd);
     array.pop_back();
-    
+
     // 如果堆空就不用调整了
     if (!array.empty())
     {
@@ -240,7 +240,8 @@ void Utils::timer_handler()
 {
     m_time_heap.tick(); // 处理链表上到期的定时器
     // m_timer_lst.tick(); // 处理链表上到期的定时器
-    alarm(m_TIMESLOT); // 重新定时以不断触发 SIGALRM 信号
+    int timeSlot = m_time_heap.getOverTime();
+    alarm(timeSlot); // 重新定时以不断触发 SIGALRM 信号
 }
 
 void Utils::show_error(int connfd, const char *info)
@@ -261,10 +262,6 @@ void cb_func(client_data *user_data)
 
     // 关闭文件描述符
     close(user_data->sockfd);
-
-    // printf("timeout close %d\n", user_data->sockfd);
-
-    // printf("http connect count %d\n", http_conn::m_user_count);
 
     // 减少连接数
     http_conn::m_user_count--;
