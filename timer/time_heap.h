@@ -83,9 +83,9 @@ public:
     {
         for (int i = 0; i < cur_size; ++i)
         {
-            delete array[i];
+            delete array[i];    //释放了由array[i]指向的对象所占用的内存
         }
-        delete[] array;
+        delete[] array;     //释放了由array指向的整个数组所占用的内存
     }
 
 public:
@@ -101,17 +101,17 @@ public:
             resize();
         }
         // hole是新建空穴位置；
-        int hole = cur_size++;
+        int hole = cur_size++;//在最后的位置创建空穴，把增加的节点放在空穴处
         int parent = 0;
         // 从空穴到根节点的路径上所有节点执行上滤
         for (; hole > 0; hole = parent)
         {
-            parent = (hole - 1) / 2;
-            if (array[parent]->expire <= timer->expire)
+            parent = (hole - 1) / 2;//父节点位置
+            if (array[parent]->expire <= timer->expire)//父节点比新增节点小
             {
-                break;
+                break;//新增节点可以放在此空穴处，上滤完成
             }
-            array[hole] = array[parent];
+            array[hole] = array[parent];//否则，交换空穴它父节点
         }
         array[hole] = timer;
     }
@@ -185,12 +185,12 @@ private:
         int child = 0;
         for (; ((hole * 2 + 1) <= (cur_size - 1)); hole = child)
         {
-            child = hole * 2 + 1;
+            child = hole * 2 + 1;   //左子节点
             if ((child < (cur_size - 1)) && (array[child + 1]->expire < array[child]->expire))
             {
-                ++child;
+                ++child;   //如果右子节点存在（即 child < (cur_size - 1)）并且右子节点值小于左子节点值，则 child 指向右子节点。
             }
-            if (array[child]->expire < temp->expire)
+            if (array[child]->expire < temp->expire)//如果子节点更小，交换子节点和空穴
             {
                 array[hole] = array[child];
             }
