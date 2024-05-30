@@ -6,6 +6,10 @@ heap_timer::heap_timer(int delay)
     expire = time(NULL) + delay;
 }
 
+heap_timer::heap_timer()
+{
+}
+
 // 初始化大小为cap的空堆
 time_heap::time_heap(int cap) throw(std::exception) : capacity(cap), cur_size(0)
 {

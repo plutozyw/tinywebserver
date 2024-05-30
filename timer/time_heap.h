@@ -25,6 +25,8 @@ class heap_timer
 {
 public:
     heap_timer(int delay);
+
+    heap_timer();
     
 public:
     time_t expire;                  // 定时器生效绝对时间
@@ -47,6 +49,7 @@ public:
 public:
     //todo 没有adjust_timer?
     void adjust_timer(heap_timer *timer);
+    
     // 添加定时器
     void add_timer(heap_timer *timer) throw(std::exception);
 

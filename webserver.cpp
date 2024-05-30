@@ -176,7 +176,7 @@ void WebServer::timer(int connfd, struct sockaddr_in client_address)
     users_timer[connfd].address = client_address;
     users_timer[connfd].sockfd = connfd;
     // 创建定时器临时变量
-    util_timer *timer = new util_timer;
+    heap_timer *timer = new heap_timer;
     // 设置定时器对应的连接资源
     timer->user_data = &users_timer[connfd];
     // 设置回调函数
@@ -187,26 +187,26 @@ void WebServer::timer(int connfd, struct sockaddr_in client_address)
     // 创建该连接对应的定时器，初始化为前述临时变量
     users_timer[connfd].timer = timer;
     // 将该定时器添加到链表
-    utils.m_timer_lst.add_timer(timer);
+    utils.m_time_heap.add_timer(timer);
 }
 
 // 若有数据传输，则将定时器往后延迟3个单位
 // 并对新的定时器在链表上的位置进行调整
-void WebServer::adjust_timer(util_timer *timer)
+void WebServer::adjust_timer(heap_timer *timer)
 {
     time_t cur = time(NULL);
     timer->expire = cur + 3 * TIMESLOT;
-    utils.m_timer_lst.adjust_timer(timer);
+    utils.m_time_heap.adjust_timer(timer);
 
     LOG_INFO("%s", "adjust timer once");
 }
 
-void WebServer::deal_timer(util_timer *timer, int sockfd)
+void WebServer::deal_timer(heap_timer *timer, int sockfd)
 {
     timer->cb_func(&users_timer[sockfd]);//回调函数、删除http连接
     if (timer)
     {
-        utils.m_timer_lst.del_timer(timer);
+        utils.m_time_heap.del_timer(timer);
     }
 
     LOG_INFO("close fd %d", users_timer[sockfd].sockfd);
@@ -295,7 +295,7 @@ bool WebServer::dealwithsignal(bool &timeout, bool &stop_server)
 
 void WebServer::dealwithread(int sockfd)
 {
-    util_timer *timer = users_timer[sockfd].timer;
+    heap_timer *timer = users_timer[sockfd].timer;
 
     // reactor
     if (1 == m_actormodel)
@@ -346,7 +346,7 @@ void WebServer::dealwithread(int sockfd)
 
 void WebServer::dealwithwrite(int sockfd)
 {
-    util_timer *timer = users_timer[sockfd].timer;
+    heap_timer *timer = users_timer[sockfd].timer;
     // reactor
     if (1 == m_actormodel)
     {
@@ -422,7 +422,7 @@ void WebServer::eventLoop() // done 多线程都会跑这段代码吗? 主线程
             else if (events[i].events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR))
             {
                 // 服务器端关闭连接，移除对应的定时器
-                util_timer *timer = users_timer[sockfd].timer;
+                heap_timer *timer = users_timer[sockfd].timer;
                 deal_timer(timer, sockfd);
             }
             // 处理信号
