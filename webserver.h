@@ -1,6 +1,8 @@
 #ifndef WEBSERVER_H
 #define WEBSERVER_H
 
+#define NDEBUG //关闭断言
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
