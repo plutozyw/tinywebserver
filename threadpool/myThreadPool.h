@@ -13,8 +13,8 @@ template <typename T>
 class ThreadPool
 {
 public:
-    // 构造函数
-    ThreadPool();
+    // 构造函数(线程数，最大请求数)
+    ThreadPool(int threadNum,int maxRequests);
     // 析构函数
     ~ThreadPool();
     // 插入任务队列函数
@@ -27,7 +27,7 @@ private:
     void run();//todo 不要他行不行?
 
     //线程池中的线程数
-    int m_threadNumber;
+    int m_threadNum;
     //任务队列最大请求数
     int m_maxRequests;
     //指向线程池数组的指针
@@ -43,3 +43,9 @@ private:
 };
 
 #endif
+
+template <typename T>
+ThreadPool<T>::ThreadPool(int threadNum, int maxRequests)
+{
+
+}
