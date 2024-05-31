@@ -16,7 +16,7 @@ public:
     threadpool(int actor_model, connection_pool *connPool, int thread_number = 8, int max_request = 10000);
     ~threadpool();
     bool append(T *request, int state);
-    bool append_p(T *request);//proactor模式的插入求情队列
+    bool append_p(T *request);//proactor模式的插入请求队列
 
 private:
     /*工作线程运行的函数，它不断从工作队列中取出任务并执行之*/
