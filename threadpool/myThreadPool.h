@@ -22,9 +22,9 @@ public:
 
 private:
     // 工作线程运行的函数
-    static void *worker(void *arg); // todo 为什么是私有属性？不是给外部调用的接口
+    static void *worker(void *arg); // done 为什么是私有属性？不是给外部调用的接口
 
-    void run(); // todo 不要他行不行?有了之后可以方便使用成员变量
+    void run(); // todo 不要他行不行?有了之后可以方便使用成员变量,静态函数没有this指针，不方便调用内部成员
 
     // 线程池中的线程数
     int m_threadNum;

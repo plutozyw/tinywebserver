@@ -156,7 +156,7 @@ void WebServer::eventListen()
 
     utils.addsig(SIGPIPE, SIG_IGN); // 忽略SIGPIPE信号  //todo 忽略它的目的?
     utils.addsig(SIGALRM, utils.sig_handler, false);//设置SIGALRM的自定义信号处理函数
-    utils.addsig(SIGTERM, utils.sig_handler, false);//todo SIGTERM的处理是否和SIGALRM不一样
+    utils.addsig(SIGTERM, utils.sig_handler, false);//done SIGTERM的处理是否和SIGALRM不一样？答：不一样，SIGTERM会终止程序运行
 
     // 每隔 TIMESLOT 秒 时间，触发 SIGALRM 信号
     alarm(TIMESLOT);
